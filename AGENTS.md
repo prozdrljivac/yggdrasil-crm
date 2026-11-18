@@ -4,6 +4,15 @@
 
 YggdrasilCRM is a production CRM for Huginn & Muninn.
 
+## Product Planning and Design
+
+- Use the [YggdrasilCRM project in Linear](https://linear.app/huginn-and-muninn/project/yggdrasilcrm-3616337fa948) for product tracking, issues, and project documents, including MVP scope, specs, and ADRs.
+- Use the Linear MCP to access the project. Do not create a parallel project tracking system in the repository.
+- Create all MVP interface designs in the [MVP Design Figma file](https://www.figma.com/design/DcKlKAAgEIXfh5mfx29L6T/MVP-Design).
+- Use FigJam for technical graphs, state diagrams, and architecture diagrams, including context, container, component, and code diagrams. Store these in the [designated Figma folder](https://www.figma.com/files/folder/693495145).
+- Draft and agree on content in chat before publishing it to these shared systems.
+- During MVP scope definition, do not start implementation without explicit user approval.
+
 ## Security Model
 
 - Treat all source code and repository history as public. The application must remain secure when an attacker knows its implementation.
