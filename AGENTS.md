@@ -13,6 +13,13 @@ YggdrasilCRM is a production CRM for Huginn & Muninn.
 - Draft and agree on content in chat before publishing it to these shared systems.
 - During MVP scope definition, do not start implementation without explicit user approval.
 
+## Mobile-First Design and Implementation
+
+- Design and build for small mobile screens first, then adapt layouts for tablet and desktop.
+- Apply this approach to all MVP workflows, not only selected screens.
+- Keep navigation, forms, touch controls, document uploads, and downloads usable on mobile. Do not require a desktop to complete core tasks.
+- Check narrow-screen layouts, readable content, keyboard access, and visible focus. Do not rely on hover-only actions.
+
 ## Security Model
 
 - Treat all source code and repository history as public. The application must remain secure when an attacker knows its implementation.
