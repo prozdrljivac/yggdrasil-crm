@@ -26,6 +26,15 @@ YggdrasilCRM is a production CRM for Huginn & Muninn.
 - Do not rely on hidden URLs, client-side checks, or undocumented behavior for security.
 - Treat security as a design requirement, not a final review step. Do not claim that the application is free of vulnerabilities.
 
+## Dependency Installation and Updates
+
+- Before each dependency install or update, use the `docs-explorer` skill to check official documentation and release metadata. Choose the newest stable version that meets the release-age rule and works with the project's other dependencies and runtimes.
+- Install only versions released at least seven full days ago. This rule applies to direct and transitive dependencies, development tools, and container images.
+- A newer release is allowed only when it fixes a security vulnerability. Verify the fix against an official security advisory or release note. Record the reason and source, and limit any override to the affected dependency and version. Do not disable the age rule for the whole install.
+- Enforce the release-age rule in package-manager settings where supported. Check release dates separately where automatic enforcement is not available. If a release date or compatibility cannot be verified, stop and report the uncertainty before installation.
+- Check known security advisories before installing or updating dependencies. Do not treat release age as proof of safety. Report known risks and conflicts rather than silently installing a vulnerable version.
+- Pin resolved versions and keep lockfiles in source control. Review dependency and lockfile changes before accepting an install or update.
+
 ## Code Readability and Simplicity
 
 - Code must be simple and easy to read. Passing tests alone is not enough.
