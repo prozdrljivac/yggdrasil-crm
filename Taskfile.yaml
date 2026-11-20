@@ -1,0 +1,220 @@
+version: '3'
+
+vars:
+  PRETTIER: >-
+    client/web/node_modules/.bin/prettier
+    --config client/web/.prettierrc.json
+    --ignore-path .gitignore
+    --ignore-path client/web/.prettierignore
+
+tasks:
+  default:
+    desc: List development commands
+    cmds:
+      - task --list
+
+  tools:
+    desc: Check pinned application tools (no downloads)
+    preconditions:
+      - sh: uv --version | grep -q '^uv 0.13.7 '
+        msg: Install uv 0.13.7. See docs/local-development.md.
+      - sh: test "$(node --version)" = "v24.22.3"
+        msg: Select Node 24.22.3 with nvm use 24.22.3.
+      - sh: test "$(pnpm --version)" = "12.20.0"
+        msg: Install pnpm 12.20.0. See docs/local-development.md.
+    cmds:
+      - uv --directory server python find 3.14.10
+
+  setup:
+    desc: Audit and install the locked dependencies; create local settings
+    cmds:
+      - task: tools
+      - task: audit
+      - uv --directory server sync --locked --no-build
+      - pnpm --dir client/web install --frozen-lockfile
+      - 'if [ ! -f .env ]; then cp .env.example .env; fi'
+
+  infra:up:
+    desc: Start local development infrastructure and wait for health checks
+    cmds:
+      - docker compose up --detach --wait --wait-timeout 180
+
+  infra:down:
+    desc: Stop local development infrastructure; keep local data
+    cmds:
+      - docker compose down
+
+  infra:logs:
+    desc: Follow local development infrastructure logs
+    cmds:
+      - docker compose logs --follow --tail 100
+
+  infra:check:
+    desc: Check the database, broker, PDF service, and authenticated S3 bucket
+    cmds:
+      - >-
+        docker compose exec -T postgres sh -c
+        'PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1
+        -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1"'
+      - docker compose exec -T rabbitmq rabbitmq-diagnostics -q check_running
+      - >-
+        curl --disable --fail --silent --show-error --max-time 10
+        "http://$(docker compose port gotenberg 3000)/health"
+      - >-
+        docker compose exec -T seaweedfs sh -c
+        'curl --disable --fail --silent --show-error --max-time 10 --output /dev/null
+        --aws-sigv4 "aws:amz:us-east-1:s3"
+        --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY"
+        "http://127.0.0.1:8333/$S3_BUCKET?list-type=2"'
+      - >-
+        docker compose exec -T seaweedfs sh -c
+        'test "$(curl --disable --silent --show-error --max-time 10 --output /dev/null
+        --write-out "%{http_code}" "http://127.0.0.1:8333/$S3_BUCKET?list-type=2")" = 403'
+
+  api:
+    desc: Run the local FastAPI server (terminal 1)
+    cmds:
+      - uv --directory server run --locked --no-sync --env-file ../.env uvicorn src.api:app --host 127.0.0.1 --port 8000 --reload
+
+  web:
+    desc: Run the local web client (terminal 2)
+    cmds:
+      - pnpm --dir client/web dev
+
+  worker:
+    desc: Run the local Celery worker (terminal 3)
+    cmds:
+      - uv --directory server run --locked --no-sync --env-file ../.env celery -A src.worker:app worker --loglevel=INFO --concurrency=1
+
+  worker:check:
+    desc: Check that a running local worker answers through RabbitMQ
+    cmds:
+      - uv --directory server run --locked --no-sync --env-file ../.env celery -A src.worker:app inspect ping --timeout 5
+
+  check:
+    desc: Run all offline development checks (no Docker or Doppler)
+    cmds:
+      - task: tools
+      - task: format:check
+      - task: lint
+      - task: typecheck
+      - task: test
+      - task: build
+      - docker compose config --quiet
+
+  format:
+    desc: Format the whole repository
+    cmds:
+      - task: format:server
+      - task: format:web
+      - task: format:shared
+
+  format:server:
+    desc: Format backend code and documents
+    cmds:
+      - uv --directory server run --locked --no-sync ruff format .
+      - '{{.PRETTIER}} --write server'
+
+  format:web:
+    desc: Format the web client
+    cmds:
+      - pnpm --dir client/web format
+
+  format:shared:
+    desc: Format shared documents and configuration outside server and web
+    cmds:
+      - >-
+        {{.PRETTIER}} --write . '!client/web/**' '!server/**'
+
+  format:check:
+    desc: Check formatting across the whole repository
+    cmds:
+      - task: format:server:check
+      - task: format:web:check
+      - task: format:shared:check
+
+  format:server:check:
+    desc: Check backend code and document formatting
+    cmds:
+      - uv --directory server run --locked --no-sync ruff format --check .
+      - '{{.PRETTIER}} --check server'
+
+  format:web:check:
+    desc: Check web client formatting
+    cmds:
+      - pnpm --dir client/web format:check
+
+  format:shared:check:
+    desc: Check shared document and configuration formatting
+    cmds:
+      - >-
+        {{.PRETTIER}} --check . '!client/web/**' '!server/**'
+
+  lint:
+    desc: Lint backend and web code
+    cmds:
+      - task: lint:server
+      - task: lint:web
+
+  lint:server:
+    desc: Lint backend code
+    cmds:
+      - uv --directory server run --locked --no-sync ruff check .
+
+  lint:web:
+    desc: Lint web client code
+    cmds:
+      - pnpm --dir client/web lint
+
+  typecheck:
+    desc: Check backend and web types
+    cmds:
+      - task: typecheck:server
+      - task: typecheck:web
+
+  typecheck:server:
+    desc: Check backend types
+    cmds:
+      - uv --directory server run --locked --no-sync mypy
+
+  typecheck:web:
+    desc: Check web client types
+    cmds:
+      - pnpm --dir client/web typecheck
+
+  test:
+    desc: Run backend and web tests without external services
+    cmds:
+      - task: test:server
+      - task: test:web
+
+  test:server:
+    desc: Run backend tests without external services
+    cmds:
+      - uv --directory server run --locked --no-sync pytest
+
+  test:web:
+    desc: Run web client tests without a backend
+    cmds:
+      - pnpm --dir client/web test
+
+  build:
+    desc: Build the web client (not a production deployment)
+    cmds:
+      - pnpm --dir client/web build
+
+  audit:
+    desc: Check locked dependencies for known advisories (requires network)
+    cmds:
+      - task: audit:server
+      - task: audit:web
+
+  audit:server:
+    desc: Check backend dependencies for known advisories (requires network)
+    cmds:
+      - uv --directory server audit --locked
+
+  audit:web:
+    desc: Check web dependencies for known advisories (requires network)
+    cmds:
+      - pnpm --dir client/web audit
