@@ -8,9 +8,11 @@ YggdrasilCRM is a production CRM for Huginn & Muninn.
 
 - Use the [YggdrasilCRM project in Linear](https://linear.app/huginn-and-muninn/project/yggdrasilcrm-3616337fa948) for product tracking, issues, and project documents, including MVP scope, specs, and ADRs.
 - Use the Linear MCP to access the project. Do not create a parallel project tracking system in the repository.
+- Linear issues are the source of truth for all repository changes. Record implementation decisions, reasons, research evidence, dependency exceptions, and acceptance results in the relevant issue. Keep repository documentation focused on the application, setup, and usage; do not keep decision logs or change histories there.
 - Create all MVP interface designs in the [MVP Design Figma file](https://www.figma.com/design/DcKlKAAgEIXfh5mfx29L6T/MVP-Design).
 - Use FigJam for technical graphs, state diagrams, and architecture diagrams, including context, container, component, and code diagrams. Store these in the [designated Figma folder](https://www.figma.com/files/folder/693495145).
 - Draft and agree on content in chat before publishing it to these shared systems.
+- Do not include Linear issue identifiers or links to Linear issues or documents in repository documentation, code comments, or example settings.
 - During MVP scope definition, do not start implementation without explicit user approval.
 
 ## Mobile-First Design and Implementation
@@ -30,12 +32,14 @@ YggdrasilCRM is a production CRM for Huginn & Muninn.
 
 - Before each dependency install or update, use the `docs-explorer` skill to check official documentation and release metadata. Choose the newest stable version that meets the release-age rule and works with the project's other dependencies and runtimes.
 - Install only versions released at least seven full days ago. This rule applies to direct and transitive dependencies, development tools, and container images.
-- A newer release is allowed only when it fixes a security vulnerability. Verify the fix against an official security advisory or release note. Record the reason and source, and limit any override to the affected dependency and version. Do not disable the age rule for the whole install.
+- A newer release is allowed only when it fixes a security vulnerability. Verify the fix against an official security advisory or release note. Record the reason and source in the relevant Linear issue after approval of the content. Limit any override to the affected dependency and version. Do not disable the age rule for the whole install.
 - Enforce the release-age rule in package-manager settings where supported. Check release dates separately where automatic enforcement is not available. If a release date or compatibility cannot be verified, stop and report the uncertainty before installation.
 - Check known security advisories before installing or updating dependencies. Do not treat release age as proof of safety. Report known risks and conflicts rather than silently installing a vulnerable version.
 - Pin resolved versions and keep lockfiles in source control. Review dependency and lockfile changes before accepting an install or update.
 
 ## Code Readability and Simplicity
+
+- Before working under `server/`, read and follow `server/AGENTS.md`.
 
 - Code must be simple and easy to read. Passing tests alone is not enough.
 - Keep each function focused on one clear job. Keep the main flow easy to follow.
