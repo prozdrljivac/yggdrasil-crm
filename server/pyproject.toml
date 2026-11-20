@@ -1,0 +1,65 @@
+[project]
+name = "yggdrasil-crm"
+version = "0.1.0"
+description = "YggdrasilCRM backend"
+requires-python = ">=3.14.10,<3.15"
+dependencies = [
+    "celery==5.7.0",
+    "fastapi==0.163.2",
+    "pydantic==2.14.3",
+    "pydantic-settings==2.16.2",
+    "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+    "mypy==2.4.1",
+    "pytest==9.2.0",
+    "ruff==0.17.4",
+]
+
+[build-system]
+requires = ["uv_build==0.13.7"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "src"
+module-root = ""
+
+[tool.uv]
+required-version = "==0.13.7"
+exclude-newer = "P7D"
+prerelease = "disallow"
+# Pair package-specific release-age cutoffs with exact dependency pins.
+exclude-newer-package = { fastapi = "2026-11-17T18:29:04Z" }
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[tool.pydantic-mypy]
+init_typed = true
+init_forbid_extra = true
+warn_required_dynamic_aliases = true
+
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
