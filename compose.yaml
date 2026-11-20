@@ -1,0 +1,132 @@
+name: yggdrasil-local
+
+services:
+  postgres:
+    image: postgres:18.7-bookworm@sha256:1757c628698dd1ca67ff7a5fc386bfd91040afc62a45484c346c788b0cbe5402
+    environment:
+      POSTGRES_DB: ${YGGDRASIL_POSTGRES_DB:?Set YGGDRASIL_POSTGRES_DB in .env}
+      POSTGRES_USER: ${YGGDRASIL_POSTGRES_USER:?Set YGGDRASIL_POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${YGGDRASIL_POSTGRES_PASSWORD:?Set YGGDRASIL_POSTGRES_PASSWORD in .env}
+    ports:
+      - '127.0.0.1:${YGGDRASIL_POSTGRES_PORT:?Set YGGDRASIL_POSTGRES_PORT in .env}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [database]
+
+  rabbitmq:
+    image: rabbitmq:4.4.0-management@sha256:753099a19b577c322117f793f864b3129cbba96d40317221a69d73976e3c843c
+    hostname: yggdrasil-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${YGGDRASIL_RABBITMQ_USER:?Set YGGDRASIL_RABBITMQ_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${YGGDRASIL_RABBITMQ_PASSWORD:?Set YGGDRASIL_RABBITMQ_PASSWORD in .env}
+      RABBITMQ_DEFAULT_VHOST: ${YGGDRASIL_RABBITMQ_VHOST:?Set YGGDRASIL_RABBITMQ_VHOST in .env}
+    ports:
+      - '127.0.0.1:${YGGDRASIL_RABBITMQ_PORT:?Set YGGDRASIL_RABBITMQ_PORT in .env}:5672'
+      - '127.0.0.1:${YGGDRASIL_RABBITMQ_MANAGEMENT_PORT:?Set YGGDRASIL_RABBITMQ_MANAGEMENT_PORT in .env}:15672'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 30s
+    networks: [messaging]
+
+  gotenberg:
+    image: gotenberg/gotenberg:9.4.1@sha256:7d790c081a944f4d30cacb59a2cdccbe71569532af691b93c36551f6a877b4fc
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=true
+      - --chromium-deny-private-ips=true
+      - --chromium-deny-public-ips=true
+      - --api-disable-download-from=true
+      - --webhook-disable=true
+      - --libreoffice-disable-routes=true
+      - --libreoffice-enable-macros=false
+      - --libreoffice-deny-private-ips=true
+      - --libreoffice-deny-public-ips=true
+      - --pdf-deny-private-ips=true
+      - --pdf-deny-public-ips=true
+    ports:
+      - '127.0.0.1:${YGGDRASIL_GOTENBERG_PORT:?Set YGGDRASIL_GOTENBERG_PORT in .env}:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'curl',
+          '--fail',
+          '--silent',
+          '--max-time',
+          '5',
+          'http://127.0.0.1:3000/health',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [conversion]
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0
+    command:
+      - mini
+      - -dir=/data
+      - -ip=seaweedfs
+      - -ip.bind=0.0.0.0
+      - -webdav=false
+      - -admin.ui=false
+      - -s3.iam=false
+      - -s3.port.iceberg=0
+      - -s3.port.lance=0
+      - -s3.autoCreateBucket=false
+    environment:
+      AWS_ACCESS_KEY_ID: ${YGGDRASIL_S3_ACCESS_KEY:?Set YGGDRASIL_S3_ACCESS_KEY in .env}
+      AWS_SECRET_ACCESS_KEY: ${YGGDRASIL_S3_SECRET_KEY:?Set YGGDRASIL_S3_SECRET_KEY in .env}
+      S3_BUCKET: ${YGGDRASIL_S3_BUCKET:?Set YGGDRASIL_S3_BUCKET in .env}
+    ports:
+      - '127.0.0.1:${YGGDRASIL_S3_PORT:?Set YGGDRASIL_S3_PORT in .env}:8333'
+    volumes:
+      - seaweedfs_data:/data
+    healthcheck:
+      # S3 authentication is checked separately by task infra:check.
+      test:
+        [
+          'CMD',
+          'curl',
+          '--fail',
+          '--silent',
+          '--max-time',
+          '5',
+          'http://127.0.0.1:9333/cluster/status',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [storage]
+
+networks:
+  database: {}
+  messaging: {}
+  conversion:
+    internal: true
+  storage:
+    internal: true
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  seaweedfs_data:
