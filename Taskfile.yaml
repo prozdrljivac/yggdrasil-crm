@@ -50,8 +50,9 @@ tasks:
       - docker compose logs --follow --tail 100
 
   infra:check:
-    desc: Check the database, broker, PDF service, and authenticated S3 bucket
+    desc: Check local infrastructure and identity discovery
     cmds:
+      - task: keycloak:check
       - >-
         docker compose exec -T postgres sh -c
         'PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1
@@ -70,6 +71,27 @@ tasks:
         docker compose exec -T seaweedfs sh -c
         'test "$(curl --disable --silent --show-error --max-time 10 --output /dev/null
         --write-out "%{http_code}" "http://127.0.0.1:8333/$S3_BUCKET?list-type=2")" = 403'
+
+  keycloak:up:
+    desc: Start only the isolated local Keycloak service
+    cmds:
+      - docker compose up --detach --no-deps --wait --wait-timeout 180 keycloak
+
+  keycloak:check:
+    desc: Check local identity discovery (not CRM authorization)
+    cmds:
+      - uv --directory server run --locked --no-sync python tools/keycloak.py check
+
+  keycloak:logs:
+    desc: Follow local Keycloak logs
+    cmds:
+      - docker compose logs --follow --tail 100 keycloak
+
+  keycloak:reset:
+    desc: Delete only local Keycloak accounts, sessions, and MFA enrollments
+    prompt: This permanently deletes local Keycloak data only. Continue?
+    cmds:
+      - uv --directory server run --locked --no-sync python tools/keycloak.py reset --confirm-reset
 
   api:
     desc: Run the local FastAPI server (terminal 1)

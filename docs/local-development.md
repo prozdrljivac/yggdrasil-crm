@@ -45,7 +45,7 @@ The API and web client can also run without Docker.
 ```sh
 task check         # Formatting, lint, types, tests, build, Compose validation.
 task audit         # Dependency advisories; needs internet access.
-task infra:check   # Database, broker, PDF service, signed and unsigned S3 access.
+task infra:check   # Local infrastructure and identity discovery.
 task worker:check  # Requires a running worker.
 task infra:down    # Stop services; keep local data.
 ```
@@ -71,6 +71,13 @@ Run these from the repository root. Commands without a scope run all relevant ta
 `task format:shared` formats documents and configuration outside `server/` and
 `client/web/`; `task format:shared:check` checks them without changes.
 `task build` only builds the web client; there is no backend build task yet.
+
+## Local identity checks
+
+See the [local Keycloak guide](../infra/keycloak/README.md) for fictional accounts,
+browser login/MFA checks, and a reset that deletes only Keycloak data.
+`task keycloak:up` starts identity infrastructure without the other services.
+CRM login and owner authorization are not implemented by this setup.
 
 ## Safety and help
 

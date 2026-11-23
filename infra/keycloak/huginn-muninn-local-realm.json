@@ -1,0 +1,116 @@
+{
+  "realm": "huginn-muninn-local",
+  "enabled": true,
+  "displayName": "Huginn & Muninn — local fixtures",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "identityProviders": [],
+  "identityProviderMappers": [],
+  "components": {},
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyCodeReusable": false,
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 54
+    }
+  ],
+  "browserFlow": "local-password-totp",
+  "authenticationFlows": [
+    {
+      "alias": "local-password-totp",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "yggdrasil-crm",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${LOCAL_CRM_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "7ecb6b4c-d775-4c64-a289-d97bd4184411",
+      "username": "fixture-owner",
+      "firstName": "Avery",
+      "lastName": "Example",
+      "email": "owner@example.invalid",
+      "enabled": true,
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${LOCAL_OWNER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "account": ["manage-account", "view-profile"]
+      }
+    },
+    {
+      "id": "15633bb8-58f9-444d-b14e-6bd3973b7422",
+      "username": "fixture-nonowner",
+      "firstName": "Morgan",
+      "lastName": "Example",
+      "email": "nonowner@example.invalid",
+      "enabled": true,
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${LOCAL_NONOWNER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "account": ["manage-account", "view-profile"]
+      }
+    }
+  ]
+}

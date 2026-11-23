@@ -76,6 +76,11 @@ Manage local development infrastructure from the repository root with `task infr
 | RabbitMQ management | http://127.0.0.1:15672 | Same local RabbitMQ user         |
 | Gotenberg           | http://127.0.0.1:3000  | Local conversion service         |
 | SeaweedFS S3        | http://127.0.0.1:8333  | Bucket: `yggdrasil-local`        |
+| Keycloak            | http://127.0.0.1:8081  | Fictional local realm            |
+
+See the [local Keycloak guide](../infra/keycloak/README.md) for fixture accounts,
+MFA checks, clock requirements, and the Keycloak-only reset. This infrastructure
+does not implement CRM authentication or owner authorization.
 
 Root `.env` supplies local credentials and host ports to both Compose and the
 application. [Example settings](../.env.example) list all required keys. The table

@@ -95,6 +95,17 @@ def test_example_configures_only_required_container_variables() -> None:
         "S3_BUCKET",
     }
     assert not services["gotenberg"].get("environment")
+    assert set(services["keycloak"]["environment"]) == {
+        "KC_DB",
+        "KC_HOSTNAME",
+        "KC_HEALTH_ENABLED",
+        "KC_HTTP_MANAGEMENT_SCHEME",
+        "KC_BOOTSTRAP_ADMIN_USERNAME",
+        "KC_BOOTSTRAP_ADMIN_PASSWORD",
+        "LOCAL_OWNER_PASSWORD",
+        "LOCAL_NONOWNER_PASSWORD",
+        "LOCAL_CRM_CLIENT_SECRET",
+    }
 
 
 def test_custom_credentials_reach_the_matching_containers() -> None:
@@ -138,6 +149,7 @@ def test_custom_ports_keep_loopback_bindings_and_fixed_container_ports() -> None
             "YGGDRASIL_RABBITMQ_MANAGEMENT_PORT": "25672",
             "YGGDRASIL_GOTENBERG_PORT": "13000",
             "YGGDRASIL_S3_PORT": "18333",
+            "YGGDRASIL_KEYCLOAK_PORT": "18081",
         }
     )
     expected = {
@@ -145,6 +157,7 @@ def test_custom_ports_keep_loopback_bindings_and_fixed_container_ports() -> None
         "rabbitmq": [(5672, "15672"), (15672, "25672")],
         "gotenberg": [(3000, "13000")],
         "seaweedfs": [(8333, "18333")],
+        "keycloak": [(8080, "18081")],
     }
 
     for service, ports in expected.items():
@@ -155,6 +168,31 @@ def test_custom_ports_keep_loopback_bindings_and_fixed_container_ports() -> None
 
     assert services["postgres"]["healthcheck"]["test"][0] == "CMD-SHELL"
     assert "$POSTGRES_USER" in services["postgres"]["healthcheck"]["test"][1]
+
+
+def test_keycloak_has_private_management_and_read_only_fixture_mounts() -> None:
+    service = configured_services({"YGGDRASIL_KEYCLOAK_PORT": "18081"})["keycloak"]
+    assert service["environment"]["KC_DB"] == "dev-file"
+    assert service["environment"]["KC_HOSTNAME"] == "http://127.0.0.1:18081"
+    assert service["environment"]["KC_HEALTH_ENABLED"] == "true"
+    assert service["command"] == ["start-dev", "--import-realm"]
+    assert [port["target"] for port in service["ports"]] == [8080]
+    assert service["healthcheck"]["test"][:2] == ["CMD", "/bin/bash"]
+    assert "/dev/tcp/127.0.0.1/9000" in service["healthcheck"]["test"][-1]
+    binds = [mount for mount in service["volumes"] if mount["type"] == "bind"]
+    assert len(binds) == 2
+    assert all(mount["read_only"] for mount in binds)
+    assert all(mount.get("bind", {}).get("create_host_path", False) is False for mount in binds)
+    assert set(service["networks"]) == {"identity"}
+
+
+@pytest.mark.parametrize(
+    "field", ["ADMIN_PASSWORD", "OWNER_PASSWORD", "NONOWNER_PASSWORD", "CLIENT_SECRET"]
+)
+def test_missing_keycloak_credentials_fail_closed(field: str) -> None:
+    result = compose_config(overrides={f"YGGDRASIL_KEYCLOAK_{field}": ""})
+    assert result.returncode != 0
+    assert f"YGGDRASIL_KEYCLOAK_{field}" in result.stderr
 
 
 def test_missing_credential_fails_without_a_fallback(tmp_path: Path) -> None:

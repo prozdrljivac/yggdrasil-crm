@@ -118,6 +118,48 @@ services:
       start_period: 10s
     networks: [storage]
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2-3@sha256:7e66a96e4739239070aeaf72e4c5decf0f7f682cfc725b9f7ea2b336eaba38b3
+    entrypoint: ['/bin/bash', '/opt/keycloak/local/start-local.sh']
+    command: ['start-dev', '--import-realm']
+    environment:
+      KC_DB: dev-file
+      KC_HOSTNAME: http://127.0.0.1:${YGGDRASIL_KEYCLOAK_PORT:?Set YGGDRASIL_KEYCLOAK_PORT in .env}
+      KC_HEALTH_ENABLED: 'true'
+      KC_HTTP_MANAGEMENT_SCHEME: http
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${YGGDRASIL_KEYCLOAK_ADMIN_USER:?Set YGGDRASIL_KEYCLOAK_ADMIN_USER in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${YGGDRASIL_KEYCLOAK_ADMIN_PASSWORD:?Set YGGDRASIL_KEYCLOAK_ADMIN_PASSWORD in .env}
+      LOCAL_OWNER_PASSWORD: ${YGGDRASIL_KEYCLOAK_OWNER_PASSWORD:?Set YGGDRASIL_KEYCLOAK_OWNER_PASSWORD in .env}
+      LOCAL_NONOWNER_PASSWORD: ${YGGDRASIL_KEYCLOAK_NONOWNER_PASSWORD:?Set YGGDRASIL_KEYCLOAK_NONOWNER_PASSWORD in .env}
+      LOCAL_CRM_CLIENT_SECRET: ${YGGDRASIL_KEYCLOAK_CLIENT_SECRET:?Set YGGDRASIL_KEYCLOAK_CLIENT_SECRET in .env}
+    ports:
+      - '127.0.0.1:${YGGDRASIL_KEYCLOAK_PORT:?Set YGGDRASIL_KEYCLOAK_PORT in .env}:8080'
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - type: bind
+        source: ./infra/keycloak/huginn-muninn-local-realm.json
+        target: /opt/keycloak/data/import/huginn-muninn-local-realm.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./infra/keycloak/start-local.sh
+        target: /opt/keycloak/local/start-local.sh
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        - CMD
+        - /bin/bash
+        - -ec
+        - "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/127.0.0.1/9000"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks: [identity]
+
 networks:
   database: {}
   messaging: {}
@@ -125,8 +167,10 @@ networks:
     internal: true
   storage:
     internal: true
+  identity: {}
 
 volumes:
   postgres_data:
   rabbitmq_data:
   seaweedfs_data:
+  keycloak_data:
