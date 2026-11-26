@@ -16,8 +16,8 @@ tasks:
   tools:
     desc: Check pinned application tools (no downloads)
     preconditions:
-      - sh: uv --version | grep -q '^uv 0.13.7 '
-        msg: Install uv 0.13.7. See docs/local-development.md.
+      - sh: uv --version | grep -q '^uv 0.13.10 '
+        msg: Install uv 0.13.10. See docs/local-development.md.
       - sh: test "$(node --version)" = "v24.22.3"
         msg: Select Node 24.22.3 with nvm use 24.22.3.
       - sh: test "$(pnpm --version)" = "12.20.0"
@@ -59,8 +59,9 @@ tasks:
         -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1"'
       - docker compose exec -T rabbitmq rabbitmq-diagnostics -q check_running
       - >-
+        docker compose exec -T gotenberg
         curl --disable --fail --silent --show-error --max-time 10
-        "http://$(docker compose port gotenberg 3000)/health"
+        "http://127.0.0.1:3000/health"
       - >-
         docker compose exec -T seaweedfs sh -c
         'curl --disable --fail --silent --show-error --max-time 10 --output /dev/null

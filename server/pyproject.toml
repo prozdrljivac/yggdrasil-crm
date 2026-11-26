@@ -20,7 +20,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build==0.13.7"]
+requires = ["uv_build==0.13.10"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -28,7 +28,7 @@ module-name = "src"
 module-root = ""
 
 [tool.uv]
-required-version = "==0.13.7"
+required-version = "==0.13.10"
 exclude-newer = "P7D"
 prerelease = "disallow"
 # Pair package-specific release-age cutoffs with exact dependency pins.

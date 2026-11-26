@@ -170,6 +170,27 @@ def test_custom_ports_keep_loopback_bindings_and_fixed_container_ports() -> None
     assert "$POSTGRES_USER" in services["postgres"]["healthcheck"]["test"][1]
 
 
+def test_infrastructure_checks_use_container_access_for_internal_services() -> None:
+    task = shutil.which("task")
+    if task is None:
+        pytest.skip("Task CLI is required to check infrastructure commands")
+
+    result = subprocess.run(  # noqa: S603 -- Dry run of a fixed local task; no services are contacted.
+        [task, "--dry", "infra:check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    commands = result.stdout + result.stderr
+    assert "docker compose exec -T gotenberg" in commands
+    assert "http://127.0.0.1:3000/health" in commands
+    assert "docker compose exec -T seaweedfs" in commands
+    assert "docker compose port" not in commands
+
+
 def test_keycloak_has_private_management_and_read_only_fixture_mounts() -> None:
     service = configured_services({"YGGDRASIL_KEYCLOAK_PORT": "18081"})["keycloak"]
     assert service["environment"]["KC_DB"] == "dev-file"

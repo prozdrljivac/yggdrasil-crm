@@ -14,7 +14,7 @@ login, storage access, migrations, and document tasks are not implemented yet.
 ## Tools and setup
 
 Use [Python 3.14.10](https://www.python.org/downloads/release/python-31410/) and
-[uv 0.13.7](https://pypi.org/pypi/uv/0.13.7/json).
+[uv 0.13.10](https://pypi.org/pypi/uv/0.13.7/json).
 Follow the [dependency installation rules](../AGENTS.md#dependency-installation-and-updates) and
 [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 Do not use floating versions or pipe downloaded scripts into a shell.
@@ -69,14 +69,14 @@ supports HTTPX 0.28.1 but emits its upstream deprecation warning.
 Manage local development infrastructure from the repository root with `task infra:up`,
 `task infra:check`, `task infra:logs`, and `task infra:down`.
 
-| Service             | Host endpoint          | Local identity                   |
-| ------------------- | ---------------------- | -------------------------------- |
-| PostgreSQL          | 127.0.0.1:5432         | Database/user: `yggdrasil_local` |
-| RabbitMQ            | 127.0.0.1:5672         | User/vhost: `yggdrasil_local`    |
-| RabbitMQ management | http://127.0.0.1:15672 | Same local RabbitMQ user         |
-| Gotenberg           | http://127.0.0.1:3000  | Local conversion service         |
-| SeaweedFS S3        | http://127.0.0.1:8333  | Bucket: `yggdrasil-local`        |
-| Keycloak            | http://127.0.0.1:8081  | Fictional local realm            |
+| Service             | Host endpoint             | Local identity                   |
+| ------------------- | ------------------------- | -------------------------------- |
+| PostgreSQL          | 127.0.0.1:5432            | Database/user: `yggdrasil_local` |
+| RabbitMQ            | 127.0.0.1:5672            | User/vhost: `yggdrasil_local`    |
+| RabbitMQ management | http://127.0.0.1:15672    | Same local RabbitMQ user         |
+| Gotenberg           | Container only; see below | Local conversion service         |
+| SeaweedFS S3        | Container only; see below | Bucket: `yggdrasil-local`        |
+| Keycloak            | http://127.0.0.1:8081     | Fictional local realm            |
 
 See the [local Keycloak guide](../infra/keycloak/README.md) for fixture accounts,
 MFA checks, clock requirements, and the Keycloak-only reset. This infrastructure
@@ -109,9 +109,13 @@ Gotenberg disables JavaScript, remote downloads, webhooks, and LibreOffice
 routes. Outbound private/public IP checks stay enabled. Invoice rendering still
 needs separate acceptance tests.
 
-Services use separate networks. Gotenberg and SeaweedFS use internal networks,
-which do not block every path to host services. Verify loopback publishing on
-your Docker installation. Do not weaken isolation to fix an access problem.
+Services use separate networks. Gotenberg and SeaweedFS use internal-only
+networks. Their declared host ports are not published by Docker in this setup;
+`task infra:check` checks both services inside their containers. Host-run API and
+worker integration with these services is not implemented yet and needs a
+separate access solution. Do not remove network isolation to enable access.
+Internal networks do not block every path to host services. Verify loopback
+publishing for the other services on your Docker installation.
 Keep these services local. Package dependency audits do not scan operating-system
 packages inside container images.
 
